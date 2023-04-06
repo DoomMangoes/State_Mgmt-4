@@ -8,35 +8,93 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      // Application name
-      title: 'Flutter Hello World',
+      debugShowCheckedModeBanner: false,
       // Application theme data, you can set the colors for the application as
       // you want
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
       // A widget which will be started on application startup
-      home: MyHomePage(title: 'Flutter Demo Home Page'),
+      home: HomePage(),
     );
   }
 }
 
-class MyHomePage extends StatelessWidget {
-  final String title;
-  const MyHomePage({super.key, required this.title});  
+class SliderData extends ChangeNotifier {
+  double _value = 0;
+
+  double get value => _value;
+
+  set value(double newValue) {
+    if (newValue != _value) {
+      _value = newValue;
+      notifyListeners();
+    }
+  }
+}
+
+final sliderData = SliderData();
+
+class SliderInheritedNotifier extends InheritedNotifier<SliderData> {
+  const SliderInheritedNotifier(
+      {Key? key, required SliderData sliderData, required Widget child})
+      : super(key: key, notifier: sliderData, child: child);
+
+  //Get context and call dependOnInheritedWidgetOfExactType
+  //Grab notifier and opacity value
+  static double of(BuildContext context) =>
+      context
+          .dependOnInheritedWidgetOfExactType<SliderInheritedNotifier>()
+          ?.notifier
+          ?.value ??
+      0;
+}
+
+class HomePage extends StatelessWidget {
+  const HomePage({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         // The title text which will be shown on the action bar
-        title: Text(title),
+        title: Text("Home Page"),
       ),
-      body: Center(
-        child: Text(
-          'Hello, World!',
-        ),
+      body: SliderInheritedNotifier(
+        sliderData: sliderData,
+        //Builder creates new context with SliderInheritedNotifier
+        child: Builder(builder: (context) {
+          return Column(
+            children: [
+              Slider(
+                  value: SliderInheritedNotifier.of(context),
+                  onChanged: (value) {
+                    sliderData.value = value;
+                  }),
+              Row(
+                  mainAxisSize: MainAxisSize.max,
+                  children: [
+                    Opacity(
+                      opacity: SliderInheritedNotifier.of(context),
+                      child: Container(
+                        color: Colors.yellow,
+                        height: 200,
+                      ),
+                    ),
+                    Opacity(
+                        opacity: SliderInheritedNotifier.of(context),
+                        child: Container(color: Colors.blue, height: 200)),
+                  ].expandEqually().toList()),
+            ],
+          );
+        }),
       ),
     );
   }
+}
+
+extension ExpandEqually on Iterable<Widget> {
+  Iterable<Widget> expandEqually() => map((w) => Expanded(
+        child: w,
+      ));
 }
